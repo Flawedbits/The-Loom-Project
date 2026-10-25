@@ -54,6 +54,11 @@ namespace Fragsurf.Movement {
             Vector3 forwardVelocity = Vector3.Scale (velocity, new Vector3 (1f, 0f, 1f));
             for (int i = 0; i < numOverlaps; i++) {
 
+                Rigidbody overlappedRigidbody = _colliders [i].attachedRigidbody;
+                if (overlappedRigidbody != null &&
+                    overlappedRigidbody.GetComponent<global::PhysicsFollow> () != null)
+                    continue;
+
                 Vector3 direction;
                 float distance;
 

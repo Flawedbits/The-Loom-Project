@@ -9,7 +9,6 @@ public class CollisionSounds : MonoBehaviour
 	public float glassVolumePerc = 0.6f;
 
 	public AudioClip[] glassAudios;
-	public AudioClip[] crateHardAudios;
 	public AudioClip[] crateSoftAudios;
 	float lastCollision;
 	float delay = 0.5f;
@@ -33,16 +32,8 @@ public class CollisionSounds : MonoBehaviour
 						AudioClip randomGlassAudio = glassAudios[Random.Range(0, glassAudios.Length)];
 						AudioSource.PlayClipAtPoint(randomGlassAudio, transform.position, volume * glassVolumePerc);
 					}
-					if (PickUpController.playHard)
-					{
-						AudioClip randomHardAudio = crateHardAudios[Random.Range(0, crateHardAudios.Length)];
-						AudioSource.PlayClipAtPoint(randomHardAudio, transform.position, volume);
-					}
-					else
-					{
-						AudioClip randomSoftAudio = crateSoftAudios[Random.Range(0, crateSoftAudios.Length)];
-						AudioSource.PlayClipAtPoint(randomSoftAudio, transform.position, volume);
-					}
+					AudioClip randomSoftAudio = crateSoftAudios[Random.Range(0, crateSoftAudios.Length)];
+					AudioSource.PlayClipAtPoint(randomSoftAudio, transform.position, volume);
 				}
 			}
         }

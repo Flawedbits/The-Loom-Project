@@ -203,8 +203,6 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 55
   pickupRange: 4
-  pickupForce: 10
-  maxThrowingForce: 100
 --- !u!1 &2738442850590307570
 GameObject:
   m_ObjectHideFlags: 0
