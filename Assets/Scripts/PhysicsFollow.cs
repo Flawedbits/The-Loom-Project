@@ -19,12 +19,19 @@ public class PhysicsFollow : MonoBehaviour
     private float previousMaxAngularVelocity;
     private Vector3 previousTargetPosition;
     private Quaternion previousTargetRotation;
+    private readonly List<ColliderLayerState> originalColliderLayers = new List<ColliderLayerState>();
 
     private struct CollisionIgnoreState
     {
         public Collider playerCollider;
         public Collider objectCollider;
         public bool wasIgnored;
+    }
+
+    private struct ColliderLayerState
+    {
+        public GameObject gameObject;
+        public int layer;
     }
 
     public void Initialize(Transform target, Rigidbody targetRigidbody, Collider[] playerColliders)
@@ -46,9 +53,10 @@ public class PhysicsFollow : MonoBehaviour
                 continue;
             }
 
+            HashSet<GameObject> changedColliderObjects = new HashSet<GameObject>();
             foreach (Collider objectCollider in objectColliders)
             {
-                if (objectCollider == null)
+                if (objectCollider == null || !changedColliderObjects.Add(objectCollider.gameObject))
                 {
                     continue;
                 }
@@ -62,6 +70,22 @@ public class PhysicsFollow : MonoBehaviour
                 });
                 Physics.IgnoreCollision(playerCollider, objectCollider, true);
             }
+        }
+
+        foreach (Collider objectCollider in objectColliders)
+        {
+            if (objectCollider == null)
+            {
+                continue;
+            }
+
+            GameObject colliderObject = objectCollider.gameObject;
+            originalColliderLayers.Add(new ColliderLayerState
+            {
+                gameObject = colliderObject,
+                layer = colliderObject.layer
+            });
+            colliderObject.layer = LayerMask.NameToLayer("Ignore Raycast");
         }
     }
 
@@ -113,6 +137,14 @@ public class PhysicsFollow : MonoBehaviour
         }
 
         ignoredCollisions.Clear();
+        foreach (ColliderLayerState state in originalColliderLayers)
+        {
+            if (state.gameObject != null)
+            {
+                state.gameObject.layer = state.layer;
+            }
+        }
+        originalColliderLayers.Clear();
         follow = null;
         rb = null;
         enabled = false;

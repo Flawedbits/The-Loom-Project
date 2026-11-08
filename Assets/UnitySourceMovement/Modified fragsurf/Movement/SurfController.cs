@@ -297,7 +297,7 @@ namespace Fragsurf.Movement {
 
             // Jumping out of water
             bool movingForwards = playerTransform.InverseTransformVector (_surfer.moveData.velocity).z > 0f;
-            Trace waterJumpTrace = TraceBounds (playerTransform.position, playerTransform.position + playerTransform.forward * 0.1f, SurfPhysics.groundLayerMask);
+            Trace waterJumpTrace = TraceBounds (playerTransform.position, playerTransform.position + playerTransform.forward * 0.1f, SurfPhysics.GetGroundLayerMask (_surfer.collider));
             if (waterJumpTrace.hitCollider != null && Vector3.Angle (Vector3.up, waterJumpTrace.planeNormal) >= _config.slopeLimit && Input.GetButton ("Jump") && !_surfer.moveData.cameraUnderwater && movingForwards)
                 _surfer.moveData.velocity.y = Mathf.Max (_surfer.moveData.velocity.y, _config.jumpForce);
 
@@ -310,7 +310,7 @@ namespace Fragsurf.Movement {
             
             bool foundLadder = false;
 
-            RaycastHit [] hits = Physics.BoxCastAll (_surfer.moveData.origin, Vector3.Scale (_surfer.collider.bounds.size * 0.5f, colliderScale), Vector3.Scale (direction, new Vector3 (1f, 0f, 1f)), Quaternion.identity, direction.magnitude, SurfPhysics.groundLayerMask, QueryTriggerInteraction.Collide);
+            RaycastHit [] hits = Physics.BoxCastAll (_surfer.moveData.origin, Vector3.Scale (_surfer.collider.bounds.size * 0.5f, colliderScale), Vector3.Scale (direction, new Vector3 (1f, 0f, 1f)), Quaternion.identity, direction.magnitude, SurfPhysics.GetGroundLayerMask (_surfer.collider), QueryTriggerInteraction.Collide);
             foreach (RaycastHit hit in hits) {
 
                 Ladder ladder = hit.transform.GetComponentInParent<Ladder> ();
@@ -597,7 +597,7 @@ namespace Fragsurf.Movement {
             var down = _surfer.moveData.origin;
             down.y -= 0.15f;
 
-            return Tracer.TraceCollider (_surfer.collider, _surfer.moveData.origin, down, SurfPhysics.groundLayerMask);
+            return Tracer.TraceCollider (_surfer.collider, _surfer.moveData.origin, down, SurfPhysics.GetGroundLayerMask (_surfer.collider));
 
         }
 
@@ -674,7 +674,7 @@ namespace Fragsurf.Movement {
                     Vector3 startPos = boxCollider.transform.position;
                     Vector3 endPos = boxCollider.transform.position + (uncrouchDown ? Vector3.down : Vector3.up) * heightDifference;
 
-                    Trace trace = Tracer.TraceBox (startPos, endPos, halfExtents, boxCollider.contactOffset, SurfPhysics.groundLayerMask);
+                    Trace trace = Tracer.TraceBox (startPos, endPos, halfExtents, boxCollider.contactOffset, SurfPhysics.GetGroundLayerMask (_surfer.collider));
 
                     if (trace.hitCollider != null)
                         canUncrouch = false;
@@ -688,7 +688,7 @@ namespace Fragsurf.Movement {
                     Vector3 startPos = capsuleCollider.transform.position;
                     Vector3 endPos = capsuleCollider.transform.position + (uncrouchDown ? Vector3.down : Vector3.up) * heightDifference;
 
-                    Trace trace = Tracer.TraceCapsule (point1, point2, capsuleCollider.radius, startPos, endPos, capsuleCollider.contactOffset, SurfPhysics.groundLayerMask);
+                    Trace trace = Tracer.TraceCapsule (point1, point2, capsuleCollider.radius, startPos, endPos, capsuleCollider.contactOffset, SurfPhysics.GetGroundLayerMask (_surfer.collider));
 
                     if (trace.hitCollider != null)
                         canUncrouch = false;

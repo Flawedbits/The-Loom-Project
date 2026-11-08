@@ -2,6 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
+using TMPro;
 
 public class ControlMainMenu : MonoBehaviour
 {
@@ -11,6 +13,54 @@ public class ControlMainMenu : MonoBehaviour
 
     string update = "null";
     bool readKey = false;
+
+    void Start()
+    {
+        AddGooglesBinding();
+    }
+
+    void AddGooglesBinding()
+    {
+        Transform existingBinding = transform.Find("GooglesKey");
+        if (existingBinding != null)
+        {
+            return;
+        }
+
+        Transform grabBinding = transform.Find("GrabKey");
+        Transform grabLabel = transform.Find("Grab");
+        Button grabButton = grabBinding != null ? grabBinding.GetComponent<Button>() : null;
+        TMP_Text labelText = grabLabel != null ? grabLabel.GetComponent<TMP_Text>() : null;
+        if (grabButton == null || labelText == null)
+        {
+            Debug.LogError("ControlMainMenu could not create the Googles binding because the Grab row is missing.", this);
+            return;
+        }
+
+        GameObject bindingObject = Instantiate(grabButton.gameObject, transform, false);
+        bindingObject.name = "GooglesKey";
+        RectTransform bindingRect = bindingObject.GetComponent<RectTransform>();
+        bindingRect.anchoredPosition = grabBinding.GetComponent<RectTransform>().anchoredPosition + Vector2.down * 40f;
+
+        TMP_Text bindingText = bindingObject.GetComponentInChildren<TMP_Text>(true);
+        if (bindingText == null)
+        {
+            Debug.LogError("ControlMainMenu could not find the key label for the cloned Googles binding.", this);
+            Destroy(bindingObject);
+            return;
+        }
+        bindingText.gameObject.name = "GooglesKey";
+
+        Button googlesButton = bindingObject.GetComponent<Button>();
+        googlesButton.onClick = new Button.ButtonClickedEvent();
+        googlesButton.onClick.AddListener(Googles);
+
+        GameObject labelObject = Instantiate(grabLabel.gameObject, transform, false);
+        labelObject.name = "Googles";
+        labelObject.GetComponent<RectTransform>().anchoredPosition =
+            grabLabel.GetComponent<RectTransform>().anchoredPosition + Vector2.down * 40f;
+        labelObject.GetComponent<TMP_Text>().text = "Googles";
+    }
 
     void Update()
     {
@@ -56,6 +106,9 @@ public class ControlMainMenu : MonoBehaviour
                                     case "GrabKey":
                                         CustomInputManager.IM.grab = keyCode;
                                         break;
+                                    case "GooglesKey":
+                                        CustomInputManager.IM.googles = keyCode;
+                                        break;
                                 }
                             }
                             update = "null";
@@ -77,7 +130,7 @@ public class ControlMainMenu : MonoBehaviour
 
     public void Back()
     {
-        SaveData.saveControlsToJson(CustomInputManager.IM.forward,CustomInputManager.IM.backward,CustomInputManager.IM.left,CustomInputManager.IM.right,CustomInputManager.IM.jump,CustomInputManager.IM.sprint,CustomInputManager.IM.crouch,CustomInputManager.IM.grab);
+        SaveData.saveControlsToJson(CustomInputManager.IM.forward,CustomInputManager.IM.backward,CustomInputManager.IM.left,CustomInputManager.IM.right,CustomInputManager.IM.jump,CustomInputManager.IM.sprint,CustomInputManager.IM.crouch,CustomInputManager.IM.grab,CustomInputManager.IM.googles);
         settingsMenuScript.enabled = true;
         mainMenuScript.settingsMenuUI.SetActive(true);
         settingsMenuScript.controlsMenuUI.SetActive(false);
@@ -122,5 +175,10 @@ public class ControlMainMenu : MonoBehaviour
     public void Grab()
     {
         update = "GrabKey";
+    }
+
+    public void Googles()
+    {
+        update = "GooglesKey";
     }
 }

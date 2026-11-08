@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3044980160302480951}
   - component: {fileID: 7419795540674501901}
+  - component: {fileID: 9100000000000000001}
   m_Layer: 3
   m_Name: Example player prefab
   m_TagString: Untagged
@@ -92,6 +93,19 @@ MonoBehaviour:
     underwaterFriction: 2
     underwaterGravity: 6
     underwaterVelocityDampening: 2
+--- !u!114 &9100000000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 124040978337551011}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 75589d084e274da89c50025f0a143e69, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  toggleKey: 102
 --- !u!1 &1425041740161972093
 GameObject:
   m_ObjectHideFlags: 0

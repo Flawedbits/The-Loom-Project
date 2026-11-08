@@ -37,8 +37,11 @@ public class GetKeyName : MonoBehaviour
             case "GrabKey":
                 text.text = CustomInputManager.IM.grab.ToString();
                 break;
+            case "GooglesKey":
+                text.text = CustomInputManager.IM.googles.ToString();
+                break;
             default:
-                Debug.LogWarning("O meu ganda burro, o que é isto?: " + text.name);
+                Debug.LogWarning("O meu ganda burro, o que ï¿½ isto?: " + text.name);
                 break;
         }
     }
@@ -71,8 +74,11 @@ public class GetKeyName : MonoBehaviour
             case "GrabKey":
                 text.text = CustomInputManager.IM.grab.ToString();
                 break;
+            case "GooglesKey":
+                text.text = CustomInputManager.IM.googles.ToString();
+                break;
             default:
-                Debug.LogWarning("O meu ganda burro, o que é isto?: " + text.name);
+                Debug.LogWarning("O meu ganda burro, o que ï¿½ isto?: " + text.name);
                 break;
         }
     }

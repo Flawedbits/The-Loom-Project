@@ -14,6 +14,7 @@ public class CustomInputManager : MonoBehaviour
     public KeyCode sprint { get; set; }
     public KeyCode crouch { get; set; }
     public KeyCode grab { get; set; }
+    public KeyCode googles { get; set; }
 
     private void Awake()
     {
@@ -34,18 +35,21 @@ public class CustomInputManager : MonoBehaviour
         sprint = (KeyCode)System.Enum.Parse(typeof(KeyCode), PlayerPrefs.GetString("sprintKey", "LeftShift"));
         crouch = (KeyCode)System.Enum.Parse(typeof(KeyCode), PlayerPrefs.GetString("crouchKey", "LeftControl"));
         grab = (KeyCode)System.Enum.Parse(typeof(KeyCode), PlayerPrefs.GetString("grabKey", "E"));
+        googles = (KeyCode)System.Enum.Parse(typeof(KeyCode), PlayerPrefs.GetString("googlesKey", "F"));
 
         string filePath = Application.persistentDataPath + "/ControlsData.json";
         if (System.IO.File.Exists(filePath))
         {
-            CustomInputManager.IM.forward = SaveData.loadControlsFromJson()[0];
-            CustomInputManager.IM.backward = SaveData.loadControlsFromJson()[1];
-            CustomInputManager.IM.left = SaveData.loadControlsFromJson()[2];
-            CustomInputManager.IM.right = SaveData.loadControlsFromJson()[3];
-            CustomInputManager.IM.jump = SaveData.loadControlsFromJson()[4];
-            CustomInputManager.IM.sprint = SaveData.loadControlsFromJson()[5];
-            CustomInputManager.IM.crouch = SaveData.loadControlsFromJson()[6];
-            CustomInputManager.IM.grab = SaveData.loadControlsFromJson()[7];
+            KeyCode[] controls = SaveData.loadControlsFromJson();
+            CustomInputManager.IM.forward = controls[0];
+            CustomInputManager.IM.backward = controls[1];
+            CustomInputManager.IM.left = controls[2];
+            CustomInputManager.IM.right = controls[3];
+            CustomInputManager.IM.jump = controls[4];
+            CustomInputManager.IM.sprint = controls[5];
+            CustomInputManager.IM.crouch = controls[6];
+            CustomInputManager.IM.grab = controls[7];
+            CustomInputManager.IM.googles = controls[8];
         }
     }
 }

@@ -21,8 +21,8 @@ public class SaveData : MonoBehaviour
         return new float[]{volume.volumeMusic, volume.volumeSE};
     }
 
-    public static void saveControlsToJson(KeyCode forward, KeyCode backward, KeyCode left, KeyCode right, KeyCode jump, KeyCode sprint, KeyCode crouch, KeyCode grab){
-        Controls controls = new Controls(forward, backward, left, right, jump, sprint, crouch, grab);
+    public static void saveControlsToJson(KeyCode forward, KeyCode backward, KeyCode left, KeyCode right, KeyCode jump, KeyCode sprint, KeyCode crouch, KeyCode grab, KeyCode googles){
+        Controls controls = new Controls(forward, backward, left, right, jump, sprint, crouch, grab, googles);
         string controlsData = JsonUtility.ToJson(controls);
         string filePath = Application.persistentDataPath + "/ControlsData.json";
         Debug.Log(filePath);
@@ -36,7 +36,8 @@ public class SaveData : MonoBehaviour
         string controlsData = System.IO.File.ReadAllText(filePath);
 
         Controls controls = JsonUtility.FromJson<Controls>(controlsData);
-        return new KeyCode[] { controls.forward, controls.backward, controls.left, controls.right, controls.jump, controls.sprint, controls.crouch, controls.grab};
+        KeyCode googles = controls.googles == KeyCode.None ? KeyCode.F : controls.googles;
+        return new KeyCode[] { controls.forward, controls.backward, controls.left, controls.right, controls.jump, controls.sprint, controls.crouch, controls.grab, googles };
     }
 }
 
@@ -61,8 +62,9 @@ public class Controls
     public KeyCode sprint;
     public KeyCode crouch;
     public KeyCode grab;
+    public KeyCode googles;
     
-    public Controls(KeyCode forward, KeyCode backward, KeyCode left, KeyCode right, KeyCode jump, KeyCode sprint, KeyCode crouch, KeyCode grab){
+    public Controls(KeyCode forward, KeyCode backward, KeyCode left, KeyCode right, KeyCode jump, KeyCode sprint, KeyCode crouch, KeyCode grab, KeyCode googles){
         this.forward = forward;
         this.backward = backward;
         this.left = left;
@@ -71,5 +73,6 @@ public class Controls
         this.sprint = sprint;
         this.crouch = crouch;
         this.grab = grab;
+        this.googles = googles;
     }
 }

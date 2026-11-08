@@ -1,5 +1,4 @@
 using UnityEngine;
-using Fragsurf.Movement;
 
 public class PickUpController : MonoBehaviour
 {
@@ -9,13 +8,35 @@ public class PickUpController : MonoBehaviour
     [SerializeField, Min(0.1f)] private float maxHoldDistance = 3.5f;
     [SerializeField, Min(0f)] private float maxHoldDistanceGracePeriod = 0.75f;
 
-    private static Rigidbody heldObject;
-    private static PhysicsFollow heldObjectFollow;
-    private static float holdDistanceExceededTime;
-    private static Transform heldPlayerRoot;
-    private static bool overlapCheckWarningLogged;
+    private static HeldObject heldRealityA = new HeldObject();
+    private static HeldObject heldRealityB = new HeldObject();
 
-    public static bool beingHeld { get; private set; }
+    private QuantumGoggles quantumGoggles;
+    private Transform parallelHoldArea;
+    private int realityALayer = -1;
+    private int realityBLayer = -1;
+
+    public static bool beingHeld => heldRealityA.Rigidbody != null || heldRealityB.Rigidbody != null;
+
+    private sealed class HeldObject
+    {
+        public Rigidbody Rigidbody;
+        public PhysicsFollow Follow;
+        public Transform PlayerRoot;
+        public float DistanceExceededTime;
+    }
+
+    public void ConfigureParallelReality(
+        QuantumGoggles goggles,
+        Transform realityBHoldArea,
+        int realityALayer,
+        int parallelRealityLayer)
+    {
+        quantumGoggles = goggles;
+        parallelHoldArea = realityBHoldArea;
+        this.realityALayer = realityALayer;
+        realityBLayer = parallelRealityLayer;
+    }
 
     private void Update()
     {
@@ -24,186 +45,202 @@ public class PickUpController : MonoBehaviour
             return;
         }
 
-        if (heldObject != null)
+        bool realityBFirst = quantumGoggles != null && quantumGoggles.GogglesOn;
+        if (TryInteractWithReality(realityBFirst))
         {
-            DropObject();
             return;
         }
 
-        if (Physics.Raycast(transform.position, transform.forward, out RaycastHit hit, pickupRange, pickupLayerMask))
+        if (beingHeld)
         {
-            Rigidbody targetRigidbody = hit.rigidbody;
-            if (targetRigidbody != null)
-            {
-                PickupObject(targetRigidbody);
-            }
+            DropObject();
         }
     }
 
     private void FixedUpdate()
     {
-        if (heldObject == null)
+        UpdateHeldObject(heldRealityA, holdArea, transform.root);
+        UpdateHeldObject(heldRealityB, parallelHoldArea, quantumGoggles != null
+            ? quantumGoggles.ParallelBody
+            : null);
+    }
+
+    private bool TryInteractWithReality(bool realityBFirst)
+    {
+        if (realityBFirst)
         {
-            if (beingHeld)
+            if (TryRaycastRealityB(transform.position, transform.forward, out Rigidbody target))
             {
-                DropObject();
+                ToggleHeldObject(target, true);
+                return true;
             }
 
+            return TryRaycastRealityA(quantumGoggles.GetRealityAInteractionOrigin(), out target) &&
+                   ToggleHeldObject(target, false);
+        }
+
+        if (TryRaycastRealityA(transform.position, out Rigidbody realityATarget))
+        {
+            ToggleHeldObject(realityATarget, false);
+            return true;
+        }
+
+        if (quantumGoggles != null &&
+            TryRaycastRealityB(
+                quantumGoggles.GetParallelInteractionOrigin(),
+                transform.forward,
+                out Rigidbody realityBTarget))
+        {
+            ToggleHeldObject(realityBTarget, true);
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool TryRaycastRealityA(Vector3 origin, out Rigidbody targetRigidbody)
+    {
+        targetRigidbody = null;
+        int realityAMask = pickupLayerMask.value;
+        int ignoreRaycastLayer = LayerMask.NameToLayer("Ignore Raycast");
+        if (ignoreRaycastLayer >= 0)
+        {
+            realityAMask &= ~(1 << ignoreRaycastLayer);
+        }
+
+        if (realityALayer >= 0)
+        {
+            realityAMask |= 1 << realityALayer;
+        }
+        if (realityBLayer >= 0)
+        {
+            realityAMask &= ~(1 << realityBLayer);
+        }
+
+        if (!Physics.Raycast(
+                origin,
+                transform.forward,
+                out RaycastHit hit,
+                pickupRange,
+                realityAMask,
+                QueryTriggerInteraction.Ignore))
+        {
+            return false;
+        }
+
+        targetRigidbody = hit.rigidbody;
+        return targetRigidbody != null;
+    }
+
+    private bool TryRaycastRealityB(Vector3 origin, Vector3 direction, out Rigidbody targetRigidbody)
+    {
+        targetRigidbody = null;
+        if (realityBLayer < 0 ||
+            !Physics.Raycast(
+                origin,
+                direction,
+                out RaycastHit hit,
+                pickupRange,
+                1 << realityBLayer,
+                QueryTriggerInteraction.Ignore))
+        {
+            return false;
+        }
+
+        targetRigidbody = hit.rigidbody;
+        return targetRigidbody != null;
+    }
+
+    private bool ToggleHeldObject(Rigidbody targetRigidbody, bool isRealityBObject)
+    {
+        HeldObject heldObject = isRealityBObject ? heldRealityB : heldRealityA;
+        if (heldObject.Rigidbody == targetRigidbody)
+        {
+            DropHeldObject(heldObject);
+            return true;
+        }
+
+        if (heldObject.Rigidbody != null)
+        {
+            DropHeldObject(heldObject);
+        }
+
+        Transform targetHoldArea = isRealityBObject ? parallelHoldArea : holdArea;
+        Transform targetPlayerRoot = isRealityBObject && quantumGoggles != null
+            ? quantumGoggles.ParallelBody
+            : transform.root;
+        if (targetHoldArea == null || targetPlayerRoot == null)
+        {
+            Debug.LogError("PickUpController requires a hold area and player body for the target reality.", this);
+            return true;
+        }
+
+        heldObject.Rigidbody = targetRigidbody;
+        heldObject.PlayerRoot = targetPlayerRoot;
+        heldObject.Follow = targetRigidbody.gameObject.AddComponent<PhysicsFollow>();
+        heldObject.Follow.Initialize(
+            targetHoldArea,
+            targetRigidbody,
+            targetPlayerRoot.GetComponentsInChildren<Collider>(true));
+        heldObject.DistanceExceededTime = 0f;
+        return true;
+    }
+
+    private void UpdateHeldObject(HeldObject heldObject, Transform targetHoldArea, Transform playerRoot)
+    {
+        if (heldObject.Rigidbody == null)
+        {
+            ClearHeldObject(heldObject);
             return;
         }
 
-        Vector3 playerPosition = transform.root.position;
-        if (holdArea == null ||
-            (heldObject.worldCenterOfMass - playerPosition).sqrMagnitude > maxHoldDistance * maxHoldDistance)
+        Transform distanceReference = heldObject.PlayerRoot != null ? heldObject.PlayerRoot : playerRoot;
+        if (targetHoldArea == null ||
+            distanceReference == null ||
+            (heldObject.Rigidbody.worldCenterOfMass - distanceReference.position).sqrMagnitude >
+            maxHoldDistance * maxHoldDistance)
         {
-            holdDistanceExceededTime += Time.fixedDeltaTime;
-            if (holdDistanceExceededTime >= maxHoldDistanceGracePeriod)
+            heldObject.DistanceExceededTime += Time.fixedDeltaTime;
+            if (heldObject.DistanceExceededTime >= maxHoldDistanceGracePeriod)
             {
-                DropObject();
+                DropHeldObject(heldObject);
             }
         }
         else
         {
-            holdDistanceExceededTime = 0f;
+            heldObject.DistanceExceededTime = 0f;
         }
-    }
-
-    private void PickupObject(Rigidbody targetRigidbody)
-    {
-        if (holdArea == null)
-        {
-            Debug.LogError("PickUpController requires a hold area to follow.", this);
-            return;
-        }
-
-        heldObject = targetRigidbody;
-        heldPlayerRoot = transform.root;
-        heldObjectFollow = heldObject.gameObject.AddComponent<PhysicsFollow>();
-        heldObjectFollow.Initialize(
-            holdArea,
-            heldObject,
-            heldPlayerRoot.GetComponentsInChildren<Collider>(true));
-        holdDistanceExceededTime = 0f;
-        overlapCheckWarningLogged = false;
-        beingHeld = true;
     }
 
     public static void DropObject()
     {
-        if (IsOverlappingPlayer())
+        DropHeldObject(heldRealityA);
+        DropHeldObject(heldRealityB);
+    }
+
+    private static void DropHeldObject(HeldObject heldObject)
+    {
+        if (heldObject.Rigidbody == null)
         {
+            ClearHeldObject(heldObject);
             return;
         }
 
-        if (heldObjectFollow != null)
+        if (heldObject.Follow != null)
         {
-            heldObjectFollow.StopFollowing();
-            Destroy(heldObjectFollow);
+            heldObject.Follow.StopFollowing();
+            Destroy(heldObject.Follow);
         }
-
-        heldObjectFollow = null;
-        heldObject = null;
-        holdDistanceExceededTime = 0f;
-        heldPlayerRoot = null;
-        beingHeld = false;
+        ClearHeldObject(heldObject);
+        ClearHeldObject(heldObject);
     }
 
-    private static bool IsOverlappingPlayer()
+    private static void ClearHeldObject(HeldObject heldObject)
     {
-        if (heldObject == null || heldPlayerRoot == null)
-        {
-            return true;
-        }
-
-        Physics.SyncTransforms();
-        SurfCharacter playerCharacter = heldPlayerRoot.GetComponentInChildren<SurfCharacter>(true);
-        Collider playerCharacterCollider = playerCharacter != null ? playerCharacter.collider : null;
-        Collider[] playerColliders = heldPlayerRoot.GetComponentsInChildren<Collider>(true);
-        Collider[] objectColliders = heldObject.GetComponentsInChildren<Collider>(true);
-        bool foundPlayerCollider = IsUsableCollider(playerCharacterCollider);
-        bool foundObjectCollider = false;
-
-        foreach (Collider playerCollider in playerColliders)
-        {
-            if (IsUsableCollider(playerCollider) && !playerCollider.isTrigger)
-            {
-                foundPlayerCollider = true;
-                break;
-            }
-        }
-
-        foreach (Collider objectCollider in objectColliders)
-        {
-            if (IsUsableCollider(objectCollider) && !objectCollider.isTrigger)
-            {
-                foundObjectCollider = true;
-                break;
-            }
-        }
-
-        if (!foundPlayerCollider || !foundObjectCollider)
-        {
-            if (!overlapCheckWarningLogged)
-            {
-                Debug.LogError("Cannot safely drop the held object because its solid collider or the player's solid collider could not be found.");
-                overlapCheckWarningLogged = true;
-            }
-
-            return true;
-        }
-
-        if (IsUsableCollider(playerCharacterCollider) &&
-            ColliderOverlapsObject(playerCharacterCollider, objectColliders))
-        {
-            return true;
-        }
-
-        foreach (Collider playerCollider in playerColliders)
-        {
-            if (!IsUsableCollider(playerCollider) || playerCollider.isTrigger ||
-                playerCollider == playerCharacterCollider)
-            {
-                continue;
-            }
-
-            if (ColliderOverlapsObject(playerCollider, objectColliders))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        heldObject.Rigidbody = null;
+        heldObject.Follow = null;
+        heldObject.PlayerRoot = null;
+        heldObject.DistanceExceededTime = 0f;
     }
 
-    private static bool ColliderOverlapsObject(Collider playerCollider, Collider[] objectColliders)
-    {
-        foreach (Collider objectCollider in objectColliders)
-        {
-            if (!IsUsableCollider(objectCollider) || objectCollider.isTrigger)
-            {
-                continue;
-            }
-
-            if (playerCollider.bounds.Intersects(objectCollider.bounds) ||
-                Physics.ComputePenetration(
-                    playerCollider,
-                    playerCollider.transform.position,
-                    playerCollider.transform.rotation,
-                    objectCollider,
-                    objectCollider.transform.position,
-                    objectCollider.transform.rotation,
-                    out _,
-                    out _))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static bool IsUsableCollider(Collider collider)
-    {
-        return collider != null && collider.enabled && collider.gameObject.activeInHierarchy;
-    }
 }
